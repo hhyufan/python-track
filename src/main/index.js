@@ -480,7 +480,8 @@ app.whenReady().then(() => {
       case 'theme':
         return stateStore.getTheme()
       default:
-        return null
+        // 对于其他键（如aiSettings），使用通用的getState方法
+        return stateStore.getState(key)
     }
   })
 
@@ -504,6 +505,11 @@ app.whenReady().then(() => {
   ipcMain.handle('set-theme', (event, theme) => {
     stateStore.setTheme(theme)
     return true
+  })
+
+  // 处理通用状态设置（包括AI设置）
+  ipcMain.handle('set-state', (event, key, value) => {
+    return stateStore.setState(key, value)
   })
 
   // 处理代码编辑内容的持久化

@@ -11,11 +11,34 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
   useEffect(() => {
     ;(async () => {
       try {
-        // 从localStorage中获取已保存的设置
+        // 首先尝试从electron store获取设置
+        if (window.ipcApi && window.ipcApi.getState) {
+          try {
+            const storeSettings = await window.ipcApi.getState('aiSettings')
+            if (storeSettings) {
+              form.setFieldsValue(storeSettings)
+              return
+            }
+          } catch (storeError) {
+            console.error('从electron store获取AI设置失败:', storeError)
+            // 如果从electron store获取失败，继续尝试其他方式
+          }
+        }
+
+        // 从localStorage中获取已保存的设置（作为备选方案）
         const savedSettings = localStorage.getItem('aiSettings')
         if (savedSettings) {
           const parsedSettings = JSON.parse(savedSettings)
           form.setFieldsValue(parsedSettings)
+
+          // 如果从localStorage获取成功，同时保存到electron store
+          if (window.ipcApi && window.ipcApi.setState) {
+            try {
+              await window.ipcApi.setState('aiSettings', parsedSettings)
+            } catch (syncError) {
+              console.error('同步AI设置到electron store失败:', syncError)
+            }
+          }
           return
         }
 
@@ -24,11 +47,12 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
         if (response.data && response.data.model_key) {
           const { base_url, model, api_key } = response.data.model_key
           // 设置表单值
-          form.setFieldsValue({
+          const settings = {
             baseUrl: base_url !== 'your_base_url' ? base_url : '',
             model: model !== 'your_model_name' ? model : '',
             apiKey: api_key !== 'your_api_key' ? api_key : ''
-          })
+          }
+          form.setFieldsValue(settings)
         }
       } catch (error) {
         console.error('获取模型配置失败:', error)
@@ -44,9 +68,20 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
       // 使用API保存到后端
       const response = await api.setModelKey(values.baseUrl, values.model, values.apiKey)
       if (response.data.model_key.success) {
-        message.success('AI 设置保存成功！')
-        // 仍然保存到localStorage以便前端使用
+        // 保存到electron store
+        if (window.ipcApi && window.ipcApi.setState) {
+          try {
+            await window.ipcApi.setState('aiSettings', values)
+          } catch (storeError) {
+            console.error('保存AI设置到electron store失败:', storeError)
+            // 如果保存到electron store失败，仍然继续保存到localStorage
+          }
+        }
+
+        // 同时保存到localStorage作为备选方案
         localStorage.setItem('aiSettings', JSON.stringify(values))
+
+        message.success('AI 设置保存成功！')
         form.resetFields()
         onComplete(values)
       } else {
@@ -131,9 +166,9 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
               (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
           >
+            <Select.Option value="deepseek-chat">deepseek V3</Select.Option>
             <Select.Option value="gpt-3.5-turbo">GPT-3.5 Turbo</Select.Option>
             <Select.Option value="gpt-4">GPT-4</Select.Option>
-            <Select.Option value="deepseek-chat">deepseek V3</Select.Option>
           </Select>
         </Form.Item>
 

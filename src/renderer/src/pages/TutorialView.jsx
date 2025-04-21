@@ -253,10 +253,6 @@ const TutorialView = () => {
       tutorial['sections'][currentSectionIndex]['code_blocks'][currentCodeBlockIndex]
     )
     try {
-      if (tutorial['title'] !== '代码演练') {
-        const pre_response = await api.post('/api/test')
-        checkAIServiceResponse(pre_response.data.test)
-      }
       const response = await api.post(
         tutorial['title'] !== '代码演练' ? '/api/run-code' : '/api/run-code-simple',
         {
@@ -292,6 +288,9 @@ const TutorialView = () => {
 
             message.success('恭喜！你已完成这个练习！')
           }
+        } else if (tutorial['title'] !== '代码演练') {
+          const pre_response = await api.post('/api/test')
+          checkAIServiceResponse(pre_response.data.test)
         }
       }
     } catch (error) {

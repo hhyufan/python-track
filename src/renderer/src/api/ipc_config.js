@@ -12,7 +12,7 @@ const api = {
       let response
       if (url === '/api/tutorials') {
         response = await window.ipcApi.getTutorials()
-        return { data: response.data.tutorials }
+        return { data: response.data['tutorials'] }
       } else if (url.startsWith('/api/tutorial/')) {
         const tutorialKey = stringToUnicode(url.split('/').pop())
         response = await window.ipcApi.getTutorial(tutorialKey)

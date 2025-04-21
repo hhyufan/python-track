@@ -37,10 +37,45 @@ const App = () => {
 
   useEffect(() => {
     // 检查是否已经完成 AI 设置
-    const aiSettings = localStorage.getItem('aiSettings')
-    if (!aiSettings) {
-      setShowAISetup(true)
+    const checkAISettings = async () => {
+      // 首先尝试从electron-store获取
+      if (window.ipcApi && window.ipcApi.getState) {
+        try {
+          const storeSettings = await window.ipcApi.getState('aiSettings')
+          if (storeSettings) {
+            // 如果从electron-store获取成功，同时更新到localStorage（向后兼容）
+            localStorage.setItem('aiSettings', JSON.stringify(storeSettings))
+            return true
+          }
+        } catch (error) {
+          console.error('从electron-store获取AI设置失败:', error)
+        }
+      }
+
+      // 如果从electron-store获取失败，尝试从localStorage获取（向后兼容）
+      const localSettings = localStorage.getItem('aiSettings')
+      if (localSettings) {
+        // 如果从localStorage获取成功，同时保存到electron-store
+        if (window.ipcApi && window.ipcApi.setState) {
+          try {
+            await window.ipcApi.setState('aiSettings', JSON.parse(localSettings))
+          } catch (error) {
+            console.error('同步AI设置到electron-store失败:', error)
+          }
+        }
+        return true
+      }
+
+      // 如果都没有设置，返回false
+      return false
     }
+
+    // 执行检查
+    checkAISettings().then((hasSettings) => {
+      if (!hasSettings) {
+        setShowAISetup(true)
+      }
+    })
 
     // 添加全局事件监听器，用于处理401错误
     const handleAuthError = (event) => {
@@ -59,6 +94,17 @@ const App = () => {
   const handleAISetupComplete = (values) => {
     setShowAISetup(false)
     setAiErrorMessage(null)
+
+    // 保存到electron-store
+    if (window.ipcApi && window.ipcApi.setState) {
+      window.ipcApi.setState('aiSettings', values).catch((error) => {
+        console.error('保存AI设置到electron-store失败:', error)
+      })
+    }
+
+    // 同时保存到localStorage（向后兼容）
+    localStorage.setItem('aiSettings', JSON.stringify(values))
+
     // 这里可以初始化 AI 相关功能
     console.log('AI settings:', values)
   }

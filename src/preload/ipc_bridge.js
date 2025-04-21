@@ -135,6 +135,16 @@ const ipcApi = {
     return ipcRenderer.invoke('set-theme', theme)
   },
 
+  // 获取通用状态（包括AI设置）
+  getState: async (key) => {
+    return ipcRenderer.invoke('get-state', key)
+  },
+
+  // 设置通用状态（包括AI设置）
+  setState: async (key, value) => {
+    return ipcRenderer.invoke('set-state', key, value)
+  },
+
   // 获取代码编辑内容
   getCodeEditorContent: async (tutorialKey, sectionIndex, blockIndex) => {
     return ipcRenderer.invoke('get-code-editor-content', { tutorialKey, sectionIndex, blockIndex })

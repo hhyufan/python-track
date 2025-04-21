@@ -146,6 +146,31 @@ function setCodeEditorContent(tutorialKey, sectionIndex, blockIndex, content) {
   store.set('codeEditorContents', codeEditorContents)
 }
 
+/**
+ * 获取通用状态
+ * @param {string} key 状态键名
+ * @returns {any} 存储的状态值
+ */
+function getState(key) {
+  return store.get(key, null)
+}
+
+/**
+ * 设置通用状态
+ * @param {string} key 状态键名
+ * @param {any} value 要存储的状态值
+ * @returns {boolean} 操作是否成功
+ */
+function setState(key, value) {
+  try {
+    store.set(key, value)
+    return true
+  } catch (error) {
+    console.error(`设置状态[${key}]失败:`, error)
+    return false
+  }
+}
+
 export default {
   getCurrentTutorial,
   setCurrentTutorial,
@@ -156,5 +181,7 @@ export default {
   getTheme,
   setTheme,
   getCodeEditorContent,
-  setCodeEditorContent
+  setCodeEditorContent,
+  getState,
+  setState
 }
