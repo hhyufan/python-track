@@ -14,7 +14,7 @@ import api from '../api/index'
 import './TutorialView.scss'
 import MarkdownRenderer from '../components/MarkdownRenderer'
 import stringToUnicode from '../utils/unicode'
-import { monaco } from '../monaco-config'
+import { monaco } from '../monaco/monaco-config'
 // 导入IPC API，用于状态持久化
 const { Title, Text } = Typography
 
