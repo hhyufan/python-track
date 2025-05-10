@@ -63,9 +63,9 @@ const api = {
   },
 
   // 添加或更新模型密钥
-  setModelKey: async (baseUrl, modelName, keyValue) => {
+  setModelKey: async (baseUrl, modelName,encrypted_api_key, aes_key, iv) => {
     try {
-      const response = await window.ipcApi.setModelKey(baseUrl, modelName, keyValue)
+      const response = await window.ipcApi.setModelKey(baseUrl, modelName,encrypted_api_key, aes_key, iv)
       return { data: response.data } // 假设后端返回成功或错误信息
     } catch (error) {
       console.error('IPC API请求错误 (setModelKey):', error)

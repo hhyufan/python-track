@@ -16,6 +16,7 @@ from pathlib import Path
 from threading import Thread
 from ai_helper import AITutor
 
+
 # 教程映射表
 TUTORIALS = {
     "演练广场": "chapter00.md",
@@ -270,17 +271,21 @@ class IPCServer:
         except Exception as e:
             self._send_error(f"Error getting solution: {str(e)}", request_id)
 
+
     def _handle_model_key(self, payload, request_id=None):
         """处理模型密钥的请求"""
         operate = payload.get("operate", "")
         model_name = payload.get("model_name", "")
         base_url = payload.get("base_url", "")
-        model_key = payload.get("model_key", "")
+        encrypted_api_key = payload.get("encrypted_api_key", "")
+        aes_key = payload.get("aes_key", "")
+        iv = payload.get("iv", "")
+        
         if not operate:
             self._send_error("Missing required parameters", request_id)
             return
         try:
-            response = self.operate_model_key(operate, base_url, model_name, model_key)
+            response = self.operate_model_key(operate, base_url, model_name,encrypted_api_key, aes_key, iv)
             self._send_response({"model_key": response}, request_id)
         except Exception as e:
             self._send_error(f"Error {operate} model key: {str(e)}", request_id)

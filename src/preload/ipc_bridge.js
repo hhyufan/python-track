@@ -58,10 +58,10 @@ const ipcApi = {
   },
 
   // 添加或更新模型密钥
-  setModelKey: async (baseUrl, modelName, keyValue) => {
+  setModelKey: async (baseUrl, modelName,encrypted_api_key, aes_key, iv) => {
     return ipcRenderer.invoke('python-ipc', {
       command: 'model_key',
-      payload: { operate: 'push', base_url: baseUrl, model_name: modelName, model_key: keyValue }
+      payload: { operate: 'push', base_url: baseUrl, model_name: modelName, encrypted_api_key: encrypted_api_key, aes_key: aes_key, iv: iv}
     })
   },
 

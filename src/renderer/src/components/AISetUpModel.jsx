@@ -66,7 +66,8 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
       setLoading(true)
 
       // 使用API保存到后端
-      const response = await api.setModelKey(values.baseUrl, values.model, values.apiKey)
+      const { encrypted_api_key, iv,aes_key} = await encryptAPIKey(values.apiKey)
+      const response = await api.setModelKey(values.baseUrl, values.model,encrypted_api_key, aes_key, iv)
       if (response.data.model_key.success) {
         // 保存到electron store
         if (window.ipcApi && window.ipcApi.setState) {
@@ -185,6 +186,66 @@ const AISetupModal = ({ visible, onComplete, errorMessage = null }) => {
       </Form>
     </Modal>
   )
+}
+
+async function encryptAPIKey(apiKey) {
+    // 输入验证
+    if (typeof apiKey !== 'string' || apiKey.length === 0) {
+        throw new Error('API Key必须是非空字符串');
+    }
+  
+    try {
+        // 1. 生成随机的AES密钥（256 位）
+        const aesKey = await crypto.subtle.generateKey(
+            { name: "AES-CBC", length: 256 },
+            true,
+            ["encrypt", "decrypt"]
+        );
+        console.log('生成的AES密钥:', aesKey);
+    
+        // 2. 导出AES密钥
+        const exportedAesKey = await crypto.subtle.exportKey("raw", aesKey);
+        const aesKeyBytes = new Uint8Array(exportedAesKey);
+        console.log('导出的AES密钥 (Uint8Array):', aesKeyBytes);
+    
+        // 3. 生成随机IV（16字节）
+        const iv = crypto.getRandomValues(new Uint8Array(16));
+        console.log('生成的IV (Uint8Array):', iv);
+    
+        // 4. 使用AES加密API Key
+        const encryptedApiKey = await crypto.subtle.encrypt(
+            { name: "AES-CBC", iv },
+            aesKey,
+            new TextEncoder().encode(apiKey)
+        );
+        console.log('加密后的API Key (ArrayBuffer):', encryptedApiKey);
+        if (!encryptedApiKey) {
+            throw new Error('AES加密API Key失败，结果为空');
+        }
+    
+        // 5. 将所有数据转换为 base64 编码的字符串
+        return {
+            encrypted_api_key: arrayBufferToBase64(encryptedApiKey),
+            aes_key: arrayBufferToBase64(aesKeyBytes),  // 直接发送AES密钥（确保传输是安全的）
+            iv: arrayBufferToBase64(iv.buffer)  // 确保iv是ArrayBuffer类型
+        };
+    
+    } catch (error) {
+        console.error("加密过程失败:", {
+            apiKeyLength: apiKey.length,
+            error: error.message
+        });
+        throw new Error(`加密失败: ${error.message}`);
+    }
+}
+
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
 }
 
 export default AISetupModal

@@ -16,6 +16,9 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from ai_helper import AITutor
 import configparser
+import base64
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import  unpad
 
 app = Flask(__name__, static_folder='./dist')
 CORS(app)  # 允许跨域请求
@@ -87,13 +90,33 @@ def run_code(code):
         error_msg = traceback.format_exc()
         return {"success": False, "output": error_msg, "vars": namespace}
 
+#解密函数
+def decrypt_key(encrypted_api_key, iv, aes_key):
+    try:
+        # 将 base64 字符串解码为二进制数据
+        encrypted_api_key_bytes = base64.b64decode(encrypted_api_key)
+        iv_bytes = base64.b64decode(iv)
+        aes_key_bytes = base64.b64decode(aes_key)
+        
+        cipher_aes = AES.new(aes_key_bytes, AES.MODE_CBC, iv_bytes)
+        plaintext = unpad(cipher_aes.decrypt(encrypted_api_key_bytes), AES.block_size)
+        return plaintext.decode('utf-8')
+    except ValueError as e:
+        if "Ciphertext with incorrect length" in str(e):
+            return {"success": False, "output": "密钥长度不正确", "vars": {}}
+        else:
+            return {"success": False, "output": traceback.format_exc(), "vars": {}}
+    except Exception as e:
+        return {"success": False, "output": traceback.format_exc(), "vars": {}}
+
 #用户自定义对模型和Key的操作
 
-def operate_model_key(operate:str, base_url:str=None, model_name:str=None, model_key:str=None):
+def operate_model_key(operate:str, base_url:str=None, model_name:str=None,encrypted_api_key=None, aes_key=None, iv=None):
     config_file_path = Path(__file__).parent / "config.ini"
     config = configparser.ConfigParser()
     config.read(config_file_path)
     if operate == 'push':
+        model_key = decrypt_key(encrypted_api_key, iv, aes_key)
         # First check if the model_name section exists
         if config.has_section(model_name):
             # If exists, update the api_key value
